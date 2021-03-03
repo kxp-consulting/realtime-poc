@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Real Time - Two Way Comms</title>
+    <style type="text/css">
+        .container {
+            background-color: #99CCFF;
+            border: thick solid #808080;
+            padding: 20px;
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <input type="text" id="message" />
+        <input type="button" id="sendmessage" value="Send" />
+        <ul id="discussion"></ul>
+    </div>
+    <!--Script references. -->
+    <!--Reference the SignalR library. -->
+    <script type="text/javascript" src="lib/signalr.min.js"></script>
+    <!--Add script to update the page and send messages.-->
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+
+            var messageInput = document.getElementById('message');
+
+            // Get the user name and store it to prepend to messages.
+            var name = prompt('Enter your name:', '');
+            // Set initial focus to message input box.
+            messageInput.focus();
+
+            const poll = async ({ fn, validate, interval, maxAttempts }) => {
+                let attempts = 0;
+
+                const executePoll = async (resolve, reject) => {
+                    const result = await fn();
+                    attempts++;
+
+                    if (validate(result)) {
+                        return resolve(result);
+                    } else if (maxAttempts && attempts === maxAttempts) {
+                        return reject(new Error('Exceeded max attempts'));
+                    } else {
+                        setTimeout(executePoll, interval, resolve, reject);
+                    }
+                };
+
+                return new Promise(executePoll);
+            };
+
+
+            const getMessages = async () => {
+                const response = await fetch('http://localhost:5000/api/restchat');
+                return response.json();
+            }
+
+            const validateMessages = (response) => {
+                console.log(response);
+                return response.length > 5; // condição para o fullfilment.
+            }
+
+            poll({
+                fn: getMessages,
+                validate: validateMessages,
+                interval: 1000,
+            })
+                .then(response => console.log(response))
+                .catch(err => console.error(err));
+        });
+    </script>
+</body>
+
+</html>
